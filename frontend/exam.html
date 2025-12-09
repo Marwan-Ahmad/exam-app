@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الاختبارات الطبية - الامتحان</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <div class="title">امتحان القبول الطبي</div>
+            <div class="top-actions">
+                <span class="badge" id="examIdLabel">لا يوجد امتحان بعد</span>
+                <button id="logoutBtn" class="secondary">تسجيل خروج</button>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="badge">الوقت المتبقي: <span id="timer" class="timer">--:--:--</span></div>
+            <div class="badge" style="background: rgba(245,158,11,0.12); color: var(--accent-2);">تمت الإجابة: <span id="answeredCount">0</span>/100</div>
+            <div class="badge" id="statusMsg">جاهز</div>
+        </div>
+
+        <div class="card" id="startCard">
+            <h3>ابدأ محاولة جديدة</h3>
+            <p class="muted">سيتم إنشاء امتحان جديد مدته 45 دقيقة مع 100 سؤال. سيتم حفظ الإجابات فور اختيارها.</p>
+            <button id="startExamBtn">بدء الامتحان</button>
+        </div>
+
+        <div class="card" id="examCard" style="display:none;">
+            <div class="top-actions" style="margin-bottom:12px;">
+                <button id="finishBtn">إنهاء الامتحان</button>
+                <button id="refreshStatusBtn" class="secondary">تحديث الحالة</button>
+            </div>
+            <div id="questionsContainer" class="question-list"></div>
+            <div id="examMsg" class="message"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import {
+            api,
+            requireAuth,
+            clearSession,
+            saveExamState,
+            loadExamState,
+        } from './api.js';
+
+        requireAuth();
+
+        const timerEl = document.getElementById('timer');
+        const answeredCountEl = document.getElementById('answeredCount');
+        const statusMsgEl = document.getElementById('statusMsg');
+        const startCard = document.getElementById('startCard');
+        const examCard = document.getElementById('examCard');
+        const questionsContainer = document.getElementById('questionsContainer');
+        const examMsg = document.getElementById('examMsg');
+        const examIdLabel = document.getElementById('examIdLabel');
+
+        const startExamBtn = document.getElementById('startExamBtn');
+        const finishBtn = document.getElementById('finishBtn');
+        const refreshStatusBtn = document.getElementById('refreshStatusBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        let state = loadExamState() || null;
+        let timerInterval = null;
+
+        function setStatus(msg, tone = 'accent') {
+            statusMsgEl.textContent = msg;
+            statusMsgEl.style.color = tone === 'error' ? 'var(--danger)' : 'var(--accent)';
+        }
+
+        function renderQuestions() {
+            questionsContainer.innerHTML = '';
+            if (!state?.questions) return;
+
+            state.questions.forEach((q, idx) => {
+                const card = document.createElement('div');
+                card.className = 'question-card';
+                const answered = state.answers?.[q.id];
+                card.innerHTML = `
+                    <div class="question-title">${idx + 1}. ${q.question_text}</div>
+                    <div class="options"></div>
+                `;
+                const optionsBox = card.querySelector('.options');
+                q.options.forEach(opt => {
+                    const row = document.createElement('label');
+                    row.className = 'option-row';
+                    row.innerHTML = `
+                        <input type="radio" name="q-${q.id}" value="${opt.option_number}" ${answered == opt.option_number ? 'checked' : ''}>
+                        <span>${opt.option_text}</span>
+                    `;
+                    row.querySelector('input').addEventListener('change', () => {
+                        submitAnswer(q.id, Number(opt.option_number));
+                    });
+                    optionsBox.appendChild(row);
+                });
+                questionsContainer.appendChild(card);
+            });
+            updateAnsweredCount();
+        }
+
+        function updateAnsweredCount() {
+            const answered = state?.answers ? Object.keys(state.answers).length : 0;
+            answeredCountEl.textContent = answered;
+        }
+
+        async function submitAnswer(questionId, optionNumber) {
+            if (!state?.exam_id) return;
+            try {
+                setStatus('يتم حفظ الإجابة...');
+                await api(`/exams/${state.exam_id}/answer`, {
+                    method: 'POST',
+                    body: {
+                        question_id: questionId,
+                        chosen_option: optionNumber,
+                    },
+                });
+                state.answers = state.answers || {};
+                state.answers[questionId] = optionNumber;
+                saveExamState(state);
+                updateAnsweredCount();
+                setStatus('تم حفظ الإجابة');
+            } catch (err) {
+                setStatus('تعذر حفظ الإجابة', 'error');
+                examMsg.textContent = err?.data?.message || 'حدث خطأ';
+                examMsg.classList.add('error');
+            }
+        }
+
+        async function startExam() {
+            try {
+                setStatus('جارٍ إنشاء الامتحان...');
+                const data = await api('/exams/start', { method: 'POST' });
+                state = {
+                    exam_id: data.exam_id,
+                    start_time: data.start_time,
+                    duration_seconds: data.duration_seconds,
+                    questions: data.questions,
+                    answers: {},
+                };
+                saveExamState(state);
+                examIdLabel.textContent = `امتحان #${state.exam_id}`;
+                startCard.style.display = 'none';
+                examCard.style.display = 'block';
+                renderQuestions();
+                bootTimer();
+                setStatus('تم البدء');
+            } catch (err) {
+                setStatus('تعذر بدء الامتحان', 'error');
+                examMsg.textContent = err?.data?.message || 'حدث خطأ';
+                examMsg.classList.add('error');
+            }
+        }
+
+        async function finishExam() {
+            if (!state?.exam_id) return;
+            try {
+                setStatus('جارٍ إنهاء الامتحان...');
+                const data = await api(`/exams/${state.exam_id}/finish`, { method: 'POST' });
+                setStatus('تم إنهاء الامتحان');
+                window.location.href = './result.html';
+            } catch (err) {
+                if (err.status === 409) {
+                    examMsg.textContent = err?.data?.message || 'أكمل كل الأسئلة قبل الإنهاء.';
+                    examMsg.classList.add('error');
+                } else {
+                    examMsg.textContent = err?.data?.message || 'حدث خطأ أثناء الإنهاء.';
+                    examMsg.classList.add('error');
+                }
+            }
+        }
+
+        async function refreshStatus() {
+            if (!state?.exam_id) return;
+            try {
+                const data = await api(`/exams/${state.exam_id}/status`);
+                if (data.is_finished) {
+                    setStatus('انتهى الوقت أو تم الإنهاء تلقائياً');
+                    window.location.href = './result.html';
+                    return;
+                }
+                setStatus('حالة محدثة');
+            } catch (err) {
+                setStatus('تعذر تحديث الحالة', 'error');
+            }
+        }
+
+        function bootTimer() {
+            if (!state) return;
+            if (timerInterval) clearInterval(timerInterval);
+            const start = new Date(state.start_time).getTime();
+            const duration = state.duration_seconds * 1000;
+
+            const tick = () => {
+                const remainingMs = start + duration - Date.now();
+                const remaining = Math.max(0, Math.floor(remainingMs / 1000));
+                timerEl.textContent = formatTime(remaining);
+                if (remaining <= 0) {
+                    clearInterval(timerInterval);
+                    setStatus('انتهى الوقت');
+                    window.location.href = './result.html';
+                }
+            };
+            tick();
+            timerInterval = setInterval(tick, 1000);
+        }
+
+        function formatTime(totalSeconds) {
+            const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+            const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+            const s = String(totalSeconds % 60).padStart(2, '0');
+            return `${h}:${m}:${s}`;
+        }
+
+        function loadExistingExam() {
+            if (!state?.exam_id) return false;
+            examIdLabel.textContent = `امتحان #${state.exam_id}`;
+            startCard.style.display = 'none';
+            examCard.style.display = 'block';
+            renderQuestions();
+            bootTimer();
+            return true;
+        }
+
+        // Event bindings
+        startExamBtn.addEventListener('click', startExam);
+        finishBtn.addEventListener('click', finishExam);
+        refreshStatusBtn.addEventListener('click', refreshStatus);
+        logoutBtn.addEventListener('click', () => {
+            clearSession();
+            window.location.href = './index.html';
+        });
+
+        // Init
+        loadExistingExam();
+    </script>
+</body>
+</html>

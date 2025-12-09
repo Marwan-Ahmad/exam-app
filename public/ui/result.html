@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نتيجة الامتحان</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <div class="logo-bar">
+                <img src="./assets/oxford.png" alt="Oxford International" onerror="this.style.display='none'">
+                <img src="./assets/leaders-full.png" alt="Leaders Training & Developing" onerror="this.style.display='none'">
+            </div>
+            <div class="title">نتيجة الامتحان</div>
+            <div class="top-actions">
+                <button id="logoutBtn" class="secondary">تسجيل خروج</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="top-actions" style="margin-bottom:12px;">
+                <button id="loadBtn">تحديث النتيجة</button>
+            </div>
+            <div id="resultBox" class="result-box" style="display:none;">
+                <div class="muted">النتيجة النهائية للامتحان الحالي</div>
+                <div class="score" id="score">--</div>
+                <div id="completedAt" class="muted"></div>
+            </div>
+            <div id="resultMsg" class="message"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { api, requireAuth, clearSession, loadExamState } from './api.js';
+
+        requireAuth();
+
+        const loadBtn = document.getElementById('loadBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const resultBox = document.getElementById('resultBox');
+        const scoreEl = document.getElementById('score');
+        const completedEl = document.getElementById('completedAt');
+        const resultMsg = document.getElementById('resultMsg');
+
+        const stored = loadExamState();
+        let backLockEnabled = false;
+        loadBtn.addEventListener('click', fetchResult);
+        logoutBtn.addEventListener('click', () => { clearSession(); window.location.href = './index.html'; });
+
+        async function fetchResult() {
+            const examId = stored?.exam_id || localStorage.getItem('lastExamId');
+            if (!examId) {
+                showMsg('لا يوجد امتحان جارٍ أو منتهٍ لعرض نتيجته. ابدأ امتحان جديد.', true);
+                return;
+            }
+            try {
+                showMsg('...');
+                const data = await api(`/exams/${examId}/result`);
+                resultBox.style.display = 'block';
+                scoreEl.textContent = data.final_score ?? '--';
+                completedEl.textContent = data.completed_at ? `اكتمل في: ${formatDate(data.completed_at)}` : '';
+                showMsg('تم جلب النتيجة');
+            } catch (err) {
+                if (err.status === 409) {
+                    showMsg('الامتحان ما زال قيد التنفيذ أو لم يُنه بعد.', true);
+                } else {
+                    showMsg(err?.data?.message || 'حدث خطأ', true);
+                }
+            }
+        }
+
+        function showMsg(text, isError = false) {
+            resultMsg.textContent = text;
+            resultMsg.classList.toggle('error', isError);
+        }
+
+        function lockBackNavigation() {
+            if (backLockEnabled) return;
+            backLockEnabled = true;
+            window.history.pushState(null, '', window.location.href);
+            window.addEventListener('popstate', handleBackBlock);
+        }
+
+        function handleBackBlock() {
+            if (!backLockEnabled) return;
+            window.history.pushState(null, '', window.location.href);
+        }
+
+        function formatDate(value) {
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return value;
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mi = String(d.getMinutes()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+        }
+
+        fetchResult();
+        lockBackNavigation();
+    </script>
+</body>
+</html>

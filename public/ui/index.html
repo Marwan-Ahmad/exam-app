@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الاختبارات الطبية - دخول</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <div class="logo-bar">
+                <img src="./assets/oxford.png" alt="Oxford International" onerror="this.style.display='none'">
+                <img src="./assets/leaders-full.png" alt="Leaders Training & Developing" onerror="this.style.display='none'">
+            </div>
+            <div>
+                <div class="title">نظام الاختبارات الطبية</div>
+                <div class="muted">Oxford International Education Group × Leaders Training & Developing</div>
+            </div>
+        </div>
+
+        <div class="hero">
+            <div>
+                <div class="hero-title">ابدأ الاختبار بثلاث خطوات</div>
+                <div class="hero-steps">
+                    <span class="chip">1. تسجيل حساب</span>
+                    <span class="chip">2. تفعيل البريد</span>
+                    <span class="chip">3. دخول للامتحان</span>
+                </div>
+                <div class="muted">سجل حسابك، فعّل البريد، ثم ادخل للامتحان.</div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card" id="registerSection">
+                <h3>تسجيل حساب جديد</h3>
+                <div class="muted">ليس لديك حساب؟ أنشئه هنا ثم انتقل لخطوة التفعيل.</div>
+                <form id="registerForm">
+                    <div class="field">
+                        <label>الاسم</label>
+                        <input name="name" required>
+                    </div>
+                    <div class="field">
+                        <label>البريد</label>
+                        <input name="email" type="email" required>
+                    </div>
+                    <div class="field">
+                        <label>كلمة المرور</label>
+                        <input name="password" type="password" required minlength="8">
+                    </div>
+                    <div class="field">
+                        <label>تأكيد كلمة المرور</label>
+                        <input name="password_confirmation" type="password" required minlength="8">
+                    </div>
+                    <button type="submit">تسجيل وإرسال كود التفعيل</button>
+                    <div id="registerMsg" class="message"></div>
+                </form>
+                <div class="step-actions">
+                    <button id="gotoLogin" class="secondary small" type="button">لدي حساب بالفعل</button>
+                </div>
+            </div>
+
+            <div class="card hidden" id="verifySection">
+                <h3>تفعيل البريد</h3>
+                <div class="muted">أدخل بريدك وكود التفعيل الذي وصل إلى بريدك، ثم سيتم نقلك مباشرة للامتحان.</div>
+                <form id="verifyForm">
+                    <div class="field">
+                        <label>البريد</label>
+                        <input name="email" type="email" required>
+                    </div>
+                    <div class="field">
+                        <label>كود التفعيل</label>
+                        <input name="code" required>
+                    </div>
+                    <button type="submit">تأكيد الكود والدخول</button>
+                    <div id="verifyMsg" class="message"></div>
+                </form>
+                <div class="step-actions">
+                    <button id="verifyBack" class="secondary small" type="button">رجوع للتسجيل</button>
+                </div>
+            </div>
+
+            <div class="card hidden" id="loginSection">
+                <h3>تسجيل الدخول</h3>
+                <div class="muted">لديك حساب مفعل مسبقًا؟ سجل دخولك مباشرة.</div>
+                <form id="loginForm">
+                    <div class="field">
+                        <label>البريد</label>
+                        <input name="email" type="email" required>
+                    </div>
+                    <div class="field">
+                        <label>كلمة المرور</label>
+                        <input name="password" type="password" required>
+                    </div>
+                    <button type="submit">دخول</button>
+                    <div id="loginMsg" class="message"></div>
+                </form>
+                <div class="step-actions">
+                    <button id="loginBack" class="secondary small" type="button">إنشاء حساب جديد</button>
+                </div>
+                <div class="muted" style="margin-top:8px">بعد الدخول سيتم نقلك لصفحة الامتحان</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { api, API_BASE, defaultApiBase, setApiBase, saveToken, saveRole, clearSession } from './api.js';
+
+        // إعدادات الربط ثابتة على نفس الخادم؛ لا يوجد إعدادات متقدمة للمستخدم.
+        setApiBase(defaultApiBase);
+
+        const registerForm = document.getElementById('registerForm');
+        const verifyForm = document.getElementById('verifyForm');
+        const loginForm = document.getElementById('loginForm');
+        const registerSection = document.getElementById('registerSection');
+        const verifySection = document.getElementById('verifySection');
+        const loginSection = document.getElementById('loginSection');
+        const gotoLoginBtn = document.getElementById('gotoLogin');
+        const verifyBack = document.getElementById('verifyBack');
+        const loginBack = document.getElementById('loginBack');
+
+        function showMessage(id, text, isError = false) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = text;
+            el.classList.toggle('error', isError);
+        }
+
+        function showStep(step) {
+            registerSection.classList.add('hidden');
+            verifySection.classList.add('hidden');
+            loginSection.classList.add('hidden');
+            if (step === 'register') registerSection.classList.remove('hidden');
+            if (step === 'verify') verifySection.classList.remove('hidden');
+            if (step === 'login') loginSection.classList.remove('hidden');
+        }
+
+        gotoLoginBtn?.addEventListener('click', () => showStep('login'));
+        verifyBack?.addEventListener('click', () => showStep('register'));
+        loginBack?.addEventListener('click', () => showStep('register'));
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showMessage('registerMsg', '...');
+            try {
+                const form = new FormData(registerForm);
+                await api('/register', {
+                    method: 'POST',
+                    body: {
+                        name: form.get('name'),
+                        email: form.get('email'),
+                        password: form.get('password'),
+                        password_confirmation: form.get('password_confirmation'),
+                    },
+                });
+                showMessage('registerMsg', 'تم إنشاء الحساب وإرسال كود التفعيل للبريد.');
+                verifyForm.email.value = form.get('email');
+                showStep('verify');
+            } catch (err) {
+                handleError('registerMsg', err);
+            }
+        });
+
+        verifyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showMessage('verifyMsg', '...');
+            try {
+                const form = new FormData(verifyForm);
+                const data = await api('/verify-email', {
+                    method: 'POST',
+                    body: {
+                        email: form.get('email'),
+                        code: form.get('code'),
+                    },
+                });
+                saveToken(data.token);
+                showMessage('verifyMsg', 'تم التفعيل، سيتم نقلك للامتحان.');
+                setTimeout(() => window.location.href = './exam.html', 600);
+            } catch (err) {
+                handleError('verifyMsg', err);
+            }
+        });
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showMessage('loginMsg', '...');
+            try {
+                const form = new FormData(loginForm);
+                const data = await api('/login', {
+                    method: 'POST',
+                    body: {
+                        email: form.get('email'),
+                        password: form.get('password'),
+                    },
+                });
+                if (data.token) {
+                    saveToken(data.token);
+                    saveRole(data.user?.role || 'user');
+                    const target = (data.user?.role === 'admin') ? './admin.html' : './exam.html';
+                    showMessage('loginMsg', 'تم تسجيل الدخول، سيتم نقلك للصفحة المناسبة.');
+                    setTimeout(() => window.location.href = target, 600);
+                } else {
+                    showMessage('loginMsg', data.message || 'تأكد من التفعيل.', true);
+                }
+            } catch (err) {
+                if (err.status === 403) {
+                    showMessage('loginMsg', 'البريد غير مفعل، تم إرسال كود جديد.', true);
+                } else {
+                    handleError('loginMsg', err);
+                }
+            }
+        });
+
+        function handleError(targetId, err) {
+            const msg = err?.data?.message || (err?.data?.errors ? flattenErrors(err.data.errors) : 'حدث خطأ');
+            showMessage(targetId, msg, true);
+        }
+
+        function flattenErrors(errors = {}) {
+            return Object.values(errors).flat().join(' | ');
+        }
+
+        // تنظيف أي جلسة قديمة عند الدخول لصفحة المصادقة
+        clearSession();
+        showStep('register');
+    </script>
+</body>
+</html>

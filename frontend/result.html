@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نتيجة الامتحان</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <div class="title">نتيجة الامتحان</div>
+            <div class="top-actions">
+                <button id="backBtn" class="secondary">عودة للامتحان</button>
+                <button id="logoutBtn" class="secondary">تسجيل خروج</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="field">
+                <label>رقم الامتحان</label>
+                <input id="examIdInput" type="number" placeholder="اكتب رقم الامتحان" />
+            </div>
+            <div class="top-actions" style="margin-bottom:12px;">
+                <button id="loadBtn">عرض النتيجة</button>
+                <button id="newExamBtn" class="secondary">بدء امتحان جديد</button>
+            </div>
+            <div id="resultBox" class="result-box" style="display:none;">
+                <div class="muted">النتيجة النهائية</div>
+                <div class="score" id="score">--</div>
+                <div id="completedAt" class="muted"></div>
+            </div>
+            <div id="resultMsg" class="message"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { api, requireAuth, clearSession, loadExamState } from './api.js';
+
+        requireAuth();
+
+        const examIdInput = document.getElementById('examIdInput');
+        const loadBtn = document.getElementById('loadBtn');
+        const newExamBtn = document.getElementById('newExamBtn');
+        const backBtn = document.getElementById('backBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const resultBox = document.getElementById('resultBox');
+        const scoreEl = document.getElementById('score');
+        const completedEl = document.getElementById('completedAt');
+        const resultMsg = document.getElementById('resultMsg');
+
+        const stored = loadExamState();
+        if (stored?.exam_id) {
+            examIdInput.value = stored.exam_id;
+        }
+
+        loadBtn.addEventListener('click', fetchResult);
+        newExamBtn.addEventListener('click', () => {
+            window.location.href = './exam.html';
+        });
+        backBtn.addEventListener('click', () => {
+            window.location.href = './exam.html';
+        });
+        logoutBtn.addEventListener('click', () => {
+            clearSession();
+            window.location.href = './index.html';
+        });
+
+        async function fetchResult() {
+            const examId = examIdInput.value || stored?.exam_id;
+            if (!examId) {
+                showMsg('يرجى إدخال رقم الامتحان', true);
+                return;
+            }
+            try {
+                showMsg('...');
+                const data = await api(`/exams/${examId}/result`);
+                resultBox.style.display = 'block';
+                scoreEl.textContent = data.final_score ?? '--';
+                completedEl.textContent = data.completed_at ? `اكتمل في: ${data.completed_at}` : '';
+                showMsg('تم جلب النتيجة');
+            } catch (err) {
+                if (err.status === 409) {
+                    showMsg('الامتحان ما زال قيد التنفيذ أو لم يُنه بعد.', true);
+                } else {
+                    showMsg(err?.data?.message || 'حدث خطأ', true);
+                }
+            }
+        }
+
+        function showMsg(text, isError = false) {
+            resultMsg.textContent = text;
+            resultMsg.classList.toggle('error', isError);
+        }
+    </script>
+</body>
+</html>

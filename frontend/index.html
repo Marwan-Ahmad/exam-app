@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الاختبارات الطبية - دخول</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <div class="title">نظام الاختبارات الطبية</div>
+            <div class="top-actions">
+                <div class="badge">API</div>
+                <input id="apiBase" type="text" placeholder="http://localhost:8000/api" style="min-width:220px">
+                <button id="saveBase" class="secondary">حفظ المسار</button>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h3>تسجيل حساب جديد</h3>
+                <form id="registerForm">
+                    <div class="field">
+                        <label>الاسم</label>
+                        <input name="name" required>
+                    </div>
+                    <div class="field">
+                        <label>البريد</label>
+                        <input name="email" type="email" required>
+                    </div>
+                    <div class="field">
+                        <label>كلمة المرور</label>
+                        <input name="password" type="password" required minlength="8">
+                    </div>
+                    <div class="field">
+                        <label>تأكيد كلمة المرور</label>
+                        <input name="password_confirmation" type="password" required minlength="8">
+                    </div>
+                    <button type="submit">تسجيل وإرسال كود التفعيل</button>
+                    <div id="registerMsg" class="message"></div>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>تفعيل البريد</h3>
+                <form id="verifyForm">
+                    <div class="field">
+                        <label>البريد</label>
+                        <input name="email" type="email" required>
+                    </div>
+                    <div class="field">
+                        <label>كود التفعيل</label>
+                        <input name="code" required>
+                    </div>
+                    <button type="submit">تفعيل وإصدار توكن</button>
+                    <div id="verifyMsg" class="message"></div>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>تسجيل الدخول</h3>
+                <form id="loginForm">
+                    <div class="field">
+                        <label>البريد</label>
+                        <input name="email" type="email" required>
+                    </div>
+                    <div class="field">
+                        <label>كلمة المرور</label>
+                        <input name="password" type="password" required>
+                    </div>
+                    <button type="submit">دخول</button>
+                    <div id="loginMsg" class="message"></div>
+                </form>
+                <div class="muted" style="margin-top:8px">بعد الدخول سيتم نقلك لصفحة الامتحان</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { api, API_BASE, setApiBase, saveToken, clearSession } from './api.js';
+
+        const apiBaseInput = document.getElementById('apiBase');
+        const saveBaseBtn = document.getElementById('saveBase');
+        apiBaseInput.value = API_BASE;
+
+        saveBaseBtn.addEventListener('click', () => {
+            setApiBase(apiBaseInput.value.trim());
+            showMessage('registerMsg', 'تم حفظ مسار الـ API');
+        });
+
+        const registerForm = document.getElementById('registerForm');
+        const verifyForm = document.getElementById('verifyForm');
+        const loginForm = document.getElementById('loginForm');
+
+        function showMessage(id, text, isError = false) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = text;
+            el.classList.toggle('error', isError);
+        }
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showMessage('registerMsg', '...');
+            try {
+                const form = new FormData(registerForm);
+                await api('/register', {
+                    method: 'POST',
+                    body: {
+                        name: form.get('name'),
+                        email: form.get('email'),
+                        password: form.get('password'),
+                        password_confirmation: form.get('password_confirmation'),
+                    },
+                });
+                showMessage('registerMsg', 'تم إنشاء الحساب وإرسال كود التفعيل للبريد.');
+            } catch (err) {
+                handleError('registerMsg', err);
+            }
+        });
+
+        verifyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showMessage('verifyMsg', '...');
+            try {
+                const form = new FormData(verifyForm);
+                const data = await api('/verify-email', {
+                    method: 'POST',
+                    body: {
+                        email: form.get('email'),
+                        code: form.get('code'),
+                    },
+                });
+                saveToken(data.token);
+                showMessage('verifyMsg', 'تم التفعيل، سيتم نقلك للامتحان.');
+                setTimeout(() => window.location.href = './exam.html', 600);
+            } catch (err) {
+                handleError('verifyMsg', err);
+            }
+        });
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showMessage('loginMsg', '...');
+            try {
+                const form = new FormData(loginForm);
+                const data = await api('/login', {
+                    method: 'POST',
+                    body: {
+                        email: form.get('email'),
+                        password: form.get('password'),
+                    },
+                });
+                if (data.token) {
+                    saveToken(data.token);
+                    showMessage('loginMsg', 'تم تسجيل الدخول، سيتم نقلك للامتحان.');
+                    setTimeout(() => window.location.href = './exam.html', 600);
+                } else {
+                    showMessage('loginMsg', data.message || 'تأكد من التفعيل.', true);
+                }
+            } catch (err) {
+                if (err.status === 403) {
+                    showMessage('loginMsg', 'البريد غير مفعل، تم إرسال كود جديد.', true);
+                } else {
+                    handleError('loginMsg', err);
+                }
+            }
+        });
+
+        function handleError(targetId, err) {
+            const msg = err?.data?.message || err?.data?.errors ? flattenErrors(err.data.errors) : 'حدث خطأ';
+            showMessage(targetId, msg, true);
+        }
+
+        function flattenErrors(errors = {}) {
+            return Object.values(errors).flat().join(' | ');
+        }
+
+        // تنظيف أي جلسة قديمة عند الدخول لصفحة المصادقة
+        clearSession();
+    </script>
+</body>
+</html>

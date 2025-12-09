@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة النتائج - أدمن</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <div class="logo-bar">
+                <img src="./assets/oxford.png" alt="Oxford International" onerror="this.style.display='none'">
+                <img src="./assets/leaders-full.png" alt="Leaders Training & Developing" onerror="this.style.display='none'">
+            </div>
+            <div class="title">نتائج الطلاب</div>
+            <div class="top-actions">
+                <button id="logoutBtn" class="secondary">تسجيل خروج</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="grid">
+                <div class="field">
+                    <label>بحث بالبريد</label>
+                    <input id="filterEmail" type="email" placeholder="student@example.com">
+                </div>
+                <div class="field">
+                    <label>الحالة</label>
+                    <select id="filterFinished">
+                        <option value="">الكل</option>
+                        <option value="1">مكتمل</option>
+                        <option value="0">قيد التنفيذ</option>
+                    </select>
+                </div>
+            </div>
+            <div class="top-actions" style="margin-top:8px;">
+                <button id="loadBtn">تحديث النتائج</button>
+            </div>
+            <div id="tableWrapper" style="margin-top:14px; overflow:auto;">
+                <table class="table" id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>المستخدم</th>
+                            <th>البريد</th>
+                            <th>رقم الامتحان</th>
+                            <th>البدء</th>
+                            <th>الانتهاء</th>
+                            <th>الحالة</th>
+                            <th>النتيجة</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="adminMsg" class="message"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { api, requireAuth, clearSession, getRole } from './api.js';
+
+        requireAuth();
+        const role = getRole();
+        if (role !== 'admin') {
+            window.location.href = './exam.html';
+        }
+
+        const logoutBtn = document.getElementById('logoutBtn');
+        const loadBtn = document.getElementById('loadBtn');
+        const filterEmail = document.getElementById('filterEmail');
+        const filterFinished = document.getElementById('filterFinished');
+        const adminMsg = document.getElementById('adminMsg');
+        const tableBody = document.querySelector('#resultsTable tbody');
+
+        logoutBtn.addEventListener('click', () => {
+            clearSession();
+            window.location.href = './index.html';
+        });
+
+        loadBtn.addEventListener('click', fetchResults);
+
+        async function fetchResults() {
+            adminMsg.textContent = '...';
+            adminMsg.classList.remove('error');
+            try {
+                const params = new URLSearchParams();
+                if (filterEmail.value) params.append('email', filterEmail.value);
+                if (filterFinished.value !== '') params.append('finished', filterFinished.value);
+                const data = await api(`/admin/exams?${params.toString()}`);
+                renderTable(data.data || []);
+                adminMsg.textContent = 'تم التحديث';
+            } catch (err) {
+                adminMsg.textContent = err?.data?.message || 'خطأ في جلب البيانات';
+                adminMsg.classList.add('error');
+            }
+        }
+
+        function renderTable(rows) {
+            tableBody.innerHTML = '';
+            rows.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.user?.name ?? '-'}</td>
+                    <td>${row.user?.email ?? '-'}</td>
+                    <td>${row.id}</td>
+                    <td>${formatDate(row.start_time)}</td>
+                    <td>${row.end_time ? formatDate(row.end_time) : '-'}</td>
+                    <td>${row.is_finished ? 'مكتمل' : 'قيد التنفيذ'}</td>
+                    <td>${row.final_score ?? '-'}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        function formatDate(value) {
+            if (!value) return '-';
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return value;
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mi = String(d.getMinutes()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+        }
+
+        fetchResults();
+    </script>
+</body>
+</html>
