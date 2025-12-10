@@ -195,7 +195,7 @@ class ExamController extends Controller
 
     protected function authorizeExam($user, Exam $exam): void
     {
-        if ($exam->user_id !== $user->id) {
+        if ((int)$exam->user_id !== $user->id) {
             abort(403, 'Unauthorized access to exam.');
         }
     }
