@@ -41,7 +41,7 @@ class ExamController extends Controller
         } else {
             $exam = $user->exams()->create([
                 'start_time' => Carbon::now(),
-                'duration_seconds' => 5400,
+                'duration_seconds' => 2702,
                 'category_id' => $user->specialization_id,
             ]);
         }
