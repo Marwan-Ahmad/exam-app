@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'specialization_id',
     ];
 
     /**
@@ -50,5 +51,10 @@ class User extends Authenticatable
     public function exams()
     {
         return $this->hasMany(Exam::class);
+    }
+
+    public function specialization()
+    {
+        return $this->belongsTo(Category::class, 'specialization_id');
     }
 }

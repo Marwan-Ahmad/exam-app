@@ -66,6 +66,10 @@
         const questionsContainer = document.getElementById('questionsContainer');
         const examMsg = document.getElementById('examMsg');
         const examIdLabel = document.getElementById('examIdLabel');
+        const userInfoBar = document.createElement('div');
+        userInfoBar.className = 'badge';
+        userInfoBar.style.marginBottom = '10px';
+        statusMsgEl.parentElement.insertBefore(userInfoBar, statusMsgEl);
 
         const startExamBtn = document.getElementById('startExamBtn');
         const finishBtn = document.getElementById('finishBtn');
@@ -75,6 +79,7 @@
         let state = loadExamState() || null;
         let timerInterval = null;
         let backLockEnabled = false;
+        let userMeta = null;
 
         function setStatus(msg, tone = 'accent') {
             statusMsgEl.textContent = msg;
@@ -160,6 +165,7 @@
                     answers: {},
                     finished: false,
                 };
+                userMeta = data.user || null;
                 saveExamState(state);
                 examIdLabel.textContent = `امتحان #${state.exam_id}`;
                 startCard.style.display = 'none';
@@ -168,6 +174,7 @@
                 bootTimer();
                 lockBackNavigation();
                 setStatus('تم البدء');
+                renderUserMeta();
             } catch (err) {
                 if (err.status === 403 && err?.data?.exam_id) {
                     // محاولة ثانية غير مسموحة، احفظ الامتحان الحالي واذهب للنتيجة
@@ -269,6 +276,7 @@
             renderQuestions();
             bootTimer();
             lockBackNavigation();
+            renderUserMeta();
             return true;
         }
 
@@ -295,6 +303,13 @@
         function handleBackBlock(evt) {
             if (!backLockEnabled) return;
             window.history.pushState(null, '', window.location.href);
+        }
+
+        function renderUserMeta() {
+            const specialization = userMeta?.specialization?.name || userMeta?.specialization || '';
+            const name = userMeta?.name || '';
+            userInfoBar.textContent = specialization ? `الطالب: ${name} | التخصص: ${specialization}` : `الطالب: ${name}`;
+            userInfoBar.style.display = 'inline-flex';
         }
 
         // Event bindings

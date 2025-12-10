@@ -9,13 +9,17 @@ class AdminController extends Controller
 {
     public function exams(Request $request)
     {
-        $query = Exam::with('user')
+        $query = Exam::with(['user.specialization', 'category'])
             ->orderByDesc('start_time');
 
         if ($request->filled('email')) {
             $query->whereHas('user', function ($q) use ($request) {
                 $q->where('email', 'like', '%' . $request->email . '%');
             });
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
         }
 
         if ($request->filled('finished')) {

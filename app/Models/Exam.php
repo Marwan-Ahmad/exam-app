@@ -18,6 +18,7 @@ class Exam extends Model
         'is_finished',
         'final_score',
         'duration_seconds',
+        'category_id',
     ];
 
     protected $casts = [
@@ -29,6 +30,11 @@ class Exam extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 
     public function answers(): HasMany

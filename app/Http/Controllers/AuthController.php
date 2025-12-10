@@ -14,15 +14,17 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $data = $request->validate([
-            'name' => 'required|string|between:3,15',
+            'name' => 'required|string|between:3,30',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
+            'specialization_id' => 'required|exists:categories,id',
         ]);
 
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+            'specialization_id' => $data['specialization_id'],
         ]);
 
         $code = $this->createVerificationCode($user);

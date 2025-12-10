@@ -43,6 +43,10 @@
         const scoreEl = document.getElementById('score');
         const completedEl = document.getElementById('completedAt');
         const resultMsg = document.getElementById('resultMsg');
+        const infoBar = document.createElement('div');
+        infoBar.className = 'badge';
+        infoBar.style.marginBottom = '10px';
+        resultBox.before(infoBar);
 
         const stored = loadExamState();
         let backLockEnabled = false;
@@ -62,6 +66,10 @@
                 scoreEl.textContent = data.final_score ?? '--';
                 completedEl.textContent = data.completed_at ? `اكتمل في: ${formatDate(data.completed_at)}` : '';
                 showMsg('تم جلب النتيجة');
+                if (data.user) {
+                    const spec = data.user.specialization?.name || data.user.specialization || '';
+                    infoBar.textContent = spec ? `الطالب: ${data.user.name} | التخصص: ${spec}` : `الطالب: ${data.user.name}`;
+                }
             } catch (err) {
                 if (err.status === 409) {
                     showMsg('الامتحان ما زال قيد التنفيذ أو لم يُنه بعد.', true);

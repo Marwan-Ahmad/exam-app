@@ -37,12 +37,16 @@
                 <div class="muted">ليس لديك حساب؟ أنشئه هنا ثم انتقل لخطوة التفعيل.</div>
                 <form id="registerForm">
                     <div class="field">
-                        <label>الاسم</label>
-                        <input name="name" required>
+                        <label>الاسم الثلاثي</label>
+                        <input name="name" placeholder="اكتب اسمك الثلاثي" required>
                     </div>
                     <div class="field">
                         <label>البريد</label>
                         <input name="email" type="email" required>
+                    </div>
+                    <div class="field">
+                        <label>التخصص</label>
+                        <select name="specialization_id" id="specialization" required></select>
                     </div>
                     <div class="field">
                         <label>كلمة المرور</label>
@@ -112,6 +116,7 @@
         const registerForm = document.getElementById('registerForm');
         const verifyForm = document.getElementById('verifyForm');
         const loginForm = document.getElementById('loginForm');
+        const specializationSelect = document.getElementById('specialization');
         const registerSection = document.getElementById('registerSection');
         const verifySection = document.getElementById('verifySection');
         const loginSection = document.getElementById('loginSection');
@@ -149,6 +154,7 @@
                     body: {
                         name: form.get('name'),
                         email: form.get('email'),
+                        specialization_id: form.get('specialization_id'),
                         password: form.get('password'),
                         password_confirmation: form.get('password_confirmation'),
                     },
@@ -223,6 +229,20 @@
         // تنظيف أي جلسة قديمة عند الدخول لصفحة المصادقة
         clearSession();
         showStep('register');
+
+        // تحميل قائمة التخصصات
+        loadCategories();
+
+        async function loadCategories() {
+            if (!specializationSelect) return;
+            try {
+                const cats = await api('/categories');
+                specializationSelect.innerHTML = cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            } catch (err) {
+                specializationSelect.innerHTML = '';
+                showMessage('registerMsg', 'تعذر جلب التخصصات، حاول لاحقاً.', true);
+            }
+        }
     </script>
 </body>
 </html>

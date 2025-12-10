@@ -26,6 +26,12 @@
                     <input id="filterEmail" type="email" placeholder="student@example.com">
                 </div>
                 <div class="field">
+                    <label>التخصص</label>
+                    <select id="filterCategory">
+                        <option value="">الكل</option>
+                    </select>
+                </div>
+                <div class="field">
                     <label>الحالة</label>
                     <select id="filterFinished">
                         <option value="">الكل</option>
@@ -43,6 +49,7 @@
                         <tr>
                             <th>المستخدم</th>
                             <th>البريد</th>
+                            <th>التخصص</th>
                             <th>رقم الامتحان</th>
                             <th>البدء</th>
                             <th>الانتهاء</th>
@@ -70,6 +77,7 @@
         const loadBtn = document.getElementById('loadBtn');
         const filterEmail = document.getElementById('filterEmail');
         const filterFinished = document.getElementById('filterFinished');
+        const filterCategory = document.getElementById('filterCategory');
         const adminMsg = document.getElementById('adminMsg');
         const tableBody = document.querySelector('#resultsTable tbody');
 
@@ -79,6 +87,7 @@
         });
 
         loadBtn.addEventListener('click', fetchResults);
+        loadCategories();
 
         async function fetchResults() {
             adminMsg.textContent = '...';
@@ -87,6 +96,7 @@
                 const params = new URLSearchParams();
                 if (filterEmail.value) params.append('email', filterEmail.value);
                 if (filterFinished.value !== '') params.append('finished', filterFinished.value);
+                if (filterCategory.value !== '') params.append('category_id', filterCategory.value);
                 const data = await api(`/admin/exams?${params.toString()}`);
                 renderTable(data.data || []);
                 adminMsg.textContent = 'تم التحديث';
@@ -103,6 +113,7 @@
                 tr.innerHTML = `
                     <td>${row.user?.name ?? '-'}</td>
                     <td>${row.user?.email ?? '-'}</td>
+                    <td>${row.category?.name ?? row.category_name ?? '-'}</td>
                     <td>${row.id}</td>
                     <td>${formatDate(row.start_time)}</td>
                     <td>${row.end_time ? formatDate(row.end_time) : '-'}</td>
@@ -126,6 +137,17 @@
         }
 
         fetchResults();
+
+        async function loadCategories() {
+            if (!filterCategory) return;
+            try {
+                const cats = await api('/categories');
+                const opts = ['<option value=\"\">الكل</option>'].concat(cats.map(c => `<option value=\"${c.id}\">${c.name}</option>`));
+                filterCategory.innerHTML = opts.join('');
+            } catch (err) {
+                filterCategory.innerHTML = '<option value=\"\">الكل</option>';
+            }
+        }
     </script>
 </body>
 </html>

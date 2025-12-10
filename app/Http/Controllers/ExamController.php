@@ -22,6 +22,12 @@ class ExamController extends Controller
             ], 403);
         }
 
+        if (empty($user->specialization_id)) {
+            return response()->json([
+                'message' => 'User does not have a specialization selected.',
+            ], 422);
+        }
+
         $existingExam = $user->exams()->latest('start_time')->first();
 
         if ($existingExam && !$existingExam->is_finished) {
@@ -35,11 +41,16 @@ class ExamController extends Controller
         } else {
             $exam = $user->exams()->create([
                 'start_time' => Carbon::now(),
-                'duration_seconds' => 2702,
+                'duration_seconds' => 5400,
+                'category_id' => $user->specialization_id,
             ]);
         }
 
-        $questions = Question::with('options')->inRandomOrder()->limit(100)->get();
+        $questions = Question::with('options')
+            ->where('category_id', $user->specialization_id)
+            ->inRandomOrder()
+            ->limit(100)
+            ->get();
 
         $responseQuestions = $questions->map(function (Question $question) {
             return [
@@ -59,6 +70,10 @@ class ExamController extends Controller
             'start_time' => $exam->start_time,
             'duration_seconds' => $exam->duration_seconds,
             'questions' => $responseQuestions,
+            'user' => [
+                'name' => $user->name,
+                'specialization' => $user->specialization ? ['id' => $user->specialization->id, 'name' => $user->specialization->name] : null,
+            ],
         ], 201);
     }
 
@@ -130,7 +145,7 @@ class ExamController extends Controller
         //     'token' => $request->bearerToken(),
         // ]);
 
-        // $this->authorizeExam($request->user(), $exam);
+        $this->authorizeExam($request->user(), $exam);
         $requiredQuestions = 100;
         $answeredCount = $exam->answers()->count();
 
@@ -167,6 +182,14 @@ class ExamController extends Controller
             'exam_id' => $exam->id,
             'final_score' => $exam->final_score,
             'completed_at' => $exam->end_time,
+            'user' => $exam->user ? [
+                'id' => $exam->user->id,
+                'name' => $exam->user->name,
+                'specialization' => $exam->user->specialization ? [
+                    'id' => $exam->user->specialization->id,
+                    'name' => $exam->user->specialization->name,
+                ] : null,
+            ] : null,
         ]);
     }
 
