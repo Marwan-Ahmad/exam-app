@@ -29,6 +29,22 @@ function saveToken(token) {
     localStorage.setItem('token', token);
 }
 
+function saveUser(user) {
+    if (user) {
+        localStorage.setItem('user', JSON.stringify(user));
+    }
+}
+
+function getUser() {
+    const raw = localStorage.getItem('user');
+    if (!raw) return null;
+    try {
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+}
+
 function getRole() {
     return localStorage.getItem('role');
 }
@@ -44,6 +60,7 @@ function clearSession() {
     localStorage.removeItem('examState');
     localStorage.removeItem('lastExamId');
     localStorage.removeItem('role');
+    localStorage.removeItem('user');
 }
 
 async function api(path, { method = 'GET', body, headers = {} } = {}) {
@@ -106,6 +123,8 @@ export {
     setApiBase,
     getToken,
     saveToken,
+    saveUser,
+    getUser,
     getRole,
     saveRole,
     clearSession,

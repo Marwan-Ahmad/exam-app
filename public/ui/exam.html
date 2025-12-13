@@ -12,8 +12,9 @@
             <div class="logo-bar">
                 <img src="./assets/oxford.png" alt="Oxford International" onerror="this.style.display='none'">
                 <img src="./assets/leaders-full.png" alt="Leaders Training & Developing" onerror="this.style.display='none'">
+                <img src="./assets/oxford2.png" alt="Oxford International 2" onerror="this.style.display='none'">
             </div>
-            <div class="title">امتحان القبول الطبي</div>
+            <div class="title" id="examTitle">امتحان القبول</div>
             <div class="top-actions">
                 <span class="badge" id="examIdLabel">لا يوجد امتحان بعد</span>
                 <button id="logoutBtn" class="secondary">تسجيل خروج</button>
@@ -50,6 +51,7 @@
             saveExamState,
             loadExamState,
             getRole,
+            getUser,
         } from './api.js';
 
         requireAuth();
@@ -66,6 +68,7 @@
         const questionsContainer = document.getElementById('questionsContainer');
         const examMsg = document.getElementById('examMsg');
         const examIdLabel = document.getElementById('examIdLabel');
+        const examTitle = document.getElementById('examTitle');
         const userInfoBar = document.createElement('div');
         userInfoBar.className = 'badge';
         userInfoBar.style.marginBottom = '10px';
@@ -79,7 +82,7 @@
         let state = loadExamState() || null;
         let timerInterval = null;
         let backLockEnabled = false;
-        let userMeta = null;
+        let userMeta = getUser();
 
         function setStatus(msg, tone = 'accent') {
             statusMsgEl.textContent = msg;
@@ -310,6 +313,9 @@
             const name = userMeta?.name || '';
             userInfoBar.textContent = specialization ? `الطالب: ${name} | التخصص: ${specialization}` : `الطالب: ${name}`;
             userInfoBar.style.display = 'inline-flex';
+            if (examTitle) {
+                examTitle.textContent = specialization ? `اختبار قبول (${specialization})` : 'اختبار قبول';
+            }
         }
 
         // Event bindings

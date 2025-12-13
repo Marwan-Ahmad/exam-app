@@ -17,6 +17,8 @@ class QuestionSeeder extends Seeder
             'اقتصاد' => 4,
             'تربية' => 5,
             'طب' => 6,
+            'إنكليزية' => 7,
+            'ماجستير' => 8,
         ];
 
         $files = [
@@ -26,6 +28,8 @@ class QuestionSeeder extends Seeder
             ['name' => 'اقتصاد', 'path' => database_path('seeders/data/economy.php')],
             ['name' => 'تربية', 'path' => database_path('seeders/data/education.php')],
             ['name' => 'طب', 'path' => database_path('seeders/data/medicine.php')], // الأسئلة القديمة
+            ['name' => 'إنكليزية', 'path' => database_path('seeders/data/english.php')],
+            ['name' => 'ماجستير', 'path' => database_path('seeders/data/master_degree.php')],
         ];
 
         $allQuestions = [];

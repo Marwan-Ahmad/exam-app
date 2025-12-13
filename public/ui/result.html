@@ -12,8 +12,9 @@
             <div class="logo-bar">
                 <img src="./assets/oxford.png" alt="Oxford International" onerror="this.style.display='none'">
                 <img src="./assets/leaders-full.png" alt="Leaders Training & Developing" onerror="this.style.display='none'">
+                <img src="./assets/oxford2.png" alt="Oxford International 2" onerror="this.style.display='none'">
             </div>
-            <div class="title">نتيجة الامتحان</div>
+            <div class="title" id="resultTitle">نتيجة الامتحان</div>
             <div class="top-actions">
                 <button id="logoutBtn" class="secondary">تسجيل خروج</button>
             </div>
@@ -33,7 +34,7 @@
     </div>
 
     <script type="module">
-        import { api, requireAuth, clearSession, loadExamState } from './api.js';
+        import { api, requireAuth, clearSession, loadExamState, getUser } from './api.js';
 
         requireAuth();
 
@@ -43,6 +44,7 @@
         const scoreEl = document.getElementById('score');
         const completedEl = document.getElementById('completedAt');
         const resultMsg = document.getElementById('resultMsg');
+        const resultTitle = document.getElementById('resultTitle');
         const infoBar = document.createElement('div');
         infoBar.className = 'badge';
         infoBar.style.marginBottom = '10px';
@@ -69,6 +71,9 @@
                 if (data.user) {
                     const spec = data.user.specialization?.name || data.user.specialization || '';
                     infoBar.textContent = spec ? `الطالب: ${data.user.name} | التخصص: ${spec}` : `الطالب: ${data.user.name}`;
+                    if (resultTitle) {
+                        resultTitle.textContent = spec ? `نتيجة اختبار قبول (${spec})` : 'نتيجة الامتحان';
+                    }
                 }
             } catch (err) {
                 if (err.status === 409) {

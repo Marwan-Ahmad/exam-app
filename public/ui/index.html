@@ -12,9 +12,11 @@
             <div class="logo-bar">
                 <img src="./assets/oxford.png" alt="Oxford International" onerror="this.style.display='none'">
                 <img src="./assets/leaders-full.png" alt="Leaders Training & Developing" onerror="this.style.display='none'">
+                <img src="./assets/oxford2.png" alt="Oxford International 2" onerror="this.style.display='none'">
+
             </div>
             <div>
-                <div class="title">نظام الاختبارات الطبية</div>
+                <div class="title">نظام اختبارات القبول لأكادمية ليدرز</div>
                 <div class="muted">Oxford International Education Group × Leaders Training & Developing</div>
             </div>
         </div>
@@ -108,7 +110,7 @@
     </div>
 
     <script type="module">
-        import { api, API_BASE, defaultApiBase, setApiBase, saveToken, saveRole, clearSession } from './api.js';
+        import { api, API_BASE, defaultApiBase, setApiBase, saveToken, saveRole, saveUser, clearSession } from './api.js';
 
         // إعدادات الربط ثابتة على نفس الخادم؛ لا يوجد إعدادات متقدمة للمستخدم.
         setApiBase(defaultApiBase);
@@ -180,6 +182,8 @@
                     },
                 });
                 saveToken(data.token);
+                saveRole(data.user?.role || 'user');
+                saveUser(data.user);
                 showMessage('verifyMsg', 'تم التفعيل، سيتم نقلك للامتحان.');
                 setTimeout(() => window.location.href = './exam.html', 600);
             } catch (err) {
@@ -202,6 +206,7 @@
                 if (data.token) {
                     saveToken(data.token);
                     saveRole(data.user?.role || 'user');
+                    saveUser(data.user);
                     const target = (data.user?.role === 'admin') ? './admin.html' : './exam.html';
                     showMessage('loginMsg', 'تم تسجيل الدخول، سيتم نقلك للصفحة المناسبة.');
                     setTimeout(() => window.location.href = target, 600);

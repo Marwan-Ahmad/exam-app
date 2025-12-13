@@ -62,12 +62,14 @@ class AuthController extends Controller
             'verification_code_expires_at' => null,
         ])->save();
 
+        $user->load('specialization');
         $token = $user->createToken('api')->plainTextToken;
 
         return response()->json([
             'message' => 'Email verified successfully.',
             'token' => $token,
             'token_type' => 'Bearer',
+            'user' => $user,
         ]);
     }
 
@@ -95,6 +97,7 @@ class AuthController extends Controller
             ], 403);
         }
 
+        $user->load('specialization');
         $token = $user->createToken('api')->plainTextToken;
 
         return response()->json([

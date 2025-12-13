@@ -65,6 +65,8 @@ class ExamController extends Controller
             ];
         })->values();
 
+        $user->load('specialization');
+
         return response()->json([
             'exam_id' => $exam->id,
             'start_time' => $exam->start_time,
@@ -74,6 +76,7 @@ class ExamController extends Controller
                 'name' => $user->name,
                 'specialization' => $user->specialization ? ['id' => $user->specialization->id, 'name' => $user->specialization->name] : null,
             ],
+            'category' => $exam->category ? ['id' => $exam->category->id, 'name' => $exam->category->name] : null,
         ], 201);
     }
 
