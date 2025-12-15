@@ -18,6 +18,7 @@ class CategorySeeder extends Seeder
             6 => 'طب',
             7 => 'إنكليزية',
             8 => 'ماجستير',
+            9 => 'علوم صحية',
         ];
 
         foreach ($categories as $id => $name) {

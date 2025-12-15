@@ -19,6 +19,7 @@ class QuestionSeeder extends Seeder
             'طب' => 6,
             'إنكليزية' => 7,
             'ماجستير' => 8,
+            'علوم صحية' => 9,
         ];
 
         $files = [
@@ -30,6 +31,7 @@ class QuestionSeeder extends Seeder
             ['name' => 'طب', 'path' => database_path('seeders/data/medicine.php')], // الأسئلة القديمة
             ['name' => 'إنكليزية', 'path' => database_path('seeders/data/english.php')],
             ['name' => 'ماجستير', 'path' => database_path('seeders/data/master_degree.php')],
+            ['name' => 'علوم صحية', 'path' => database_path('seeders/data/health_sciences.php')],
         ];
 
         $allQuestions = [];
